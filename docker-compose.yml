@@ -1,0 +1,47 @@
+services:
+  # 1. Oracle Database Service
+  oracle_db:
+    image: gvenzl/oracle-free:latest
+    container_name: ora_container
+    environment:
+      - ORACLE_PASSWORD=julia
+      - APP_USER=oracle_user
+      - APP_USER_PASSWORD=julia
+    ports:
+      - "1522:1521"
+    volumes:
+      - oradata:/opt/oracle/oradata
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  # 2. Spring Boot Service
+  backend_app:
+    build: ./spring_mvc_demo/spring-rest
+    container_name: spring_back_end
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=oracle_db
+      - DB_PORT=1521
+      - DB_SERVICE=FREEPDB1
+      - DB_USER=oracle_user
+      - DB_PASS=julia
+    depends_on:
+      oracle_db:
+        condition: service_healthy
+
+  # 3. JS script
+  frontend_app:
+    build: ./spring_mvc_demo/spring-rest/src/main/resources/static
+    container_name: web_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend_app
+
+volumes:
+  oradata:
